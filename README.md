@@ -93,3 +93,9 @@ Learn more about the sensor hardware at [I2C Moisture Sensor GitHub Repository](
 ## Acknowledgments
 
 Thanks to Miceuz for the Chirp sensor and to ESPHome for the integration platform.
+
+## Print Model
+
+Additionally, there are models for 3D printing the casing for the sensor, which consists of two parts: top and bottom.
+
+![alt text](i2c-sensor-bottom.png) ![alt text](i2c-sensor-top.png)
