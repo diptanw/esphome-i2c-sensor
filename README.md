@@ -30,13 +30,11 @@ sensor:
     illuminance:
       name: "Ambient Light"
       calibration:
-        coefficient: -1.526
+        coefficient: -1.525
         constant: 100000
-    version:
-      name: "Firmware"
-      address: 0x21
     update_interval: 5s
     address: 0x20
+    new_address: 0x21
 ```
 
 ## Configuration Options
@@ -61,8 +59,8 @@ sensor:
 
     Adjust the `coefficient` and `constant` based on known light conditions (e.g., direct sunlight vs. dark room).
 
-- **Version**
-  - `address`: Optionally specify a new I2C address for the sensor if the default conflicts with another device on your I2C bus. This must be done before other devices on the bus are initialized to avoid conflicts. After addres is changed, set the new address to `address` field of i2c device.
+- **Address**
+  - `new_address`: Optionally specify a new I2C address for the sensor if the default conflicts with another device on your I2C bus. This must be done before other devices on the bus are initialized to avoid conflicts. After addres is changed, set the new address to `address` field of i2c device.
 
 ## Callibration
 
@@ -81,7 +79,7 @@ The lux value can be calculated from the sensor reading using the formula:
 
 we calculate:
 
-- **Coefficient (m)**: `-1.526`
+- **Coefficient (m)**: `-1.525`
 - **Constant (c)**: `100,000`
 
 ## Documentation
@@ -97,5 +95,6 @@ Thanks to Miceuz for the Chirp sensor and to ESPHome for the integration platfor
 ## Print Model
 
 Additionally, there are models for 3D printing the casing for the sensor, which consists of two parts: top and bottom.
+Note that the light reading will not be possible if you print it using non-translucent material.
 
 ![alt text](i2c-sensor-bottom.png) ![alt text](i2c-sensor-top.png)

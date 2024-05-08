@@ -6,10 +6,8 @@ from esphome.const import (
     CONF_MOISTURE,
     CONF_TEMPERATURE,
     CONF_ILLUMINANCE,
-    CONF_VERSION,
     CONF_CALIBRATION,
     CONF_OFFSET,
-    CONF_ADDRESS,
     DEVICE_CLASS_MOISTURE,
     DEVICE_CLASS_TEMPERATURE,
     DEVICE_CLASS_ILLUMINANCE,
@@ -17,8 +15,6 @@ from esphome.const import (
     UNIT_PERCENT,
     UNIT_CELSIUS,
     UNIT_LUX,
-    ICON_RESTART,
-    ENTITY_CATEGORY_DIAGNOSTIC,
 )
 
 DEPENDENCIES = ["i2c"]
@@ -27,6 +23,7 @@ CONF_MIN_CAPACITY = "min_capacity"
 CONF_MAX_CAPACITY = "max_capacity"
 CONF_BRIGHTNESS_COEFFICIENT = "coefficient"
 CONF_BRIGHTNESS_CONSTANT = "constant"
+CONF_NEW_ADDRESS = "new_address"
 
 chirp_ns = cg.esphome_ns.namespace("chirp")
 chirpComponent = chirp_ns.class_(
@@ -44,13 +41,13 @@ TEMPERATURE_SCHEMA = (
         {
             cv.Optional(CONF_CALIBRATION): cv.Schema(
             {
-                cv.Optional(CONF_OFFSET): cv.int_,
+                cv.Optional(CONF_OFFSET): cv.float_,
             }),
         }
     )
 )
 
-MOISTURE_CONFIG_SCHEMA = (
+MOISTURE_SCHEMA = (
     sensor.sensor_schema(
         unit_of_measurement=UNIT_PERCENT,
         accuracy_decimals=1,
@@ -68,7 +65,7 @@ MOISTURE_CONFIG_SCHEMA = (
     )
 )
 
-LUM_CONFIG_SCHEMA = (
+ILLUMINANCE_SCHEMA = (
     sensor.sensor_schema(
         unit_of_measurement=UNIT_LUX,
         accuracy_decimals=1,
@@ -86,25 +83,14 @@ LUM_CONFIG_SCHEMA = (
     )
 )
 
-VERSION_SCHEMA = (
-    sensor.sensor_schema(
-        icon=ICON_RESTART,
-        entity_category=ENTITY_CATEGORY_DIAGNOSTIC,
-    ).extend(
-        {
-            cv.Optional(CONF_ADDRESS): cv.templatable(cv.i2c_address),
-        }
-    )
-)
-
 CONFIG_SCHEMA = (
     cv.Schema(
         {
             cv.GenerateID(): cv.declare_id(chirpComponent),
-            cv.Optional(CONF_MOISTURE): MOISTURE_CONFIG_SCHEMA,
+            cv.Optional(CONF_MOISTURE): MOISTURE_SCHEMA,
             cv.Optional(CONF_TEMPERATURE): TEMPERATURE_SCHEMA,
-            cv.Optional(CONF_ILLUMINANCE): LUM_CONFIG_SCHEMA,
-            cv.Optional(CONF_VERSION): VERSION_SCHEMA,
+            cv.Optional(CONF_ILLUMINANCE): ILLUMINANCE_SCHEMA,
+            cv.Optional(CONF_NEW_ADDRESS): cv.i2c_address,
         }
     )
     .extend(cv.polling_component_schema("5s"))
@@ -143,10 +129,7 @@ async def to_code(config):
                 calibration[CONF_BRIGHTNESS_CONSTANT]),
             )
 
-    if version_config := config.get(CONF_VERSION):
-        sens = await sensor.new_sensor(version_config)
-        cg.add(var.set_version(sens))
+    if address := config.get(CONF_NEW_ADDRESS):
+        cg.add(var.set_address(address))
 
-        if address := version_config.get(CONF_ADDRESS):
-            cg.add(var.new_i2c_address(address))
 
