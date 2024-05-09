@@ -7,7 +7,6 @@ from esphome.const import (
     CONF_TEMPERATURE,
     CONF_ILLUMINANCE,
     CONF_CALIBRATION,
-    CONF_OFFSET,
     DEVICE_CLASS_MOISTURE,
     DEVICE_CLASS_TEMPERATURE,
     DEVICE_CLASS_ILLUMINANCE,
@@ -15,6 +14,7 @@ from esphome.const import (
     UNIT_PERCENT,
     UNIT_CELSIUS,
     UNIT_LUX,
+    CONF_RAW,
 )
 
 DEPENDENCIES = ["i2c"]
@@ -37,14 +37,6 @@ TEMPERATURE_SCHEMA = (
         device_class=DEVICE_CLASS_TEMPERATURE,
         state_class=STATE_CLASS_MEASUREMENT,
     )
-    .extend(
-        {
-            cv.Optional(CONF_CALIBRATION): cv.Schema(
-            {
-                cv.Optional(CONF_OFFSET): cv.float_,
-            }),
-        }
-    )
 )
 
 MOISTURE_SCHEMA = (
@@ -56,10 +48,11 @@ MOISTURE_SCHEMA = (
     )
     .extend(
         {
-            cv.Required(CONF_CALIBRATION): cv.Schema(
+            cv.Optional(CONF_CALIBRATION): cv.Schema(
             {
-                cv.Optional(CONF_MIN_CAPACITY, default=290): cv.int_,
-                cv.Optional(CONF_MAX_CAPACITY, default=550): cv.int_,
+                cv.Optional(CONF_MIN_CAPACITY, default=245): cv.uint16_t,
+                cv.Optional(CONF_MAX_CAPACITY, default=550): cv.uint16_t,
+                cv.Optional(CONF_RAW, default=False): cv.boolean,
             }),
         }
     )
@@ -76,8 +69,9 @@ ILLUMINANCE_SCHEMA = (
         {
             cv.Optional(CONF_CALIBRATION): cv.Schema(
             {
-                cv.Optional(CONF_BRIGHTNESS_COEFFICIENT, default=-1.526): cv.float_,
-                cv.Optional(CONF_BRIGHTNESS_CONSTANT, default=100000): cv.int_,
+                cv.Optional(CONF_BRIGHTNESS_COEFFICIENT, default=-1.525): cv.float_,
+                cv.Optional(CONF_BRIGHTNESS_CONSTANT, default=100000): cv.uint32_t,
+                cv.Optional(CONF_RAW, default=False): cv.boolean,
             }),
         }
     )
@@ -109,15 +103,13 @@ async def to_code(config):
         if calibration := moisture_config.get(CONF_CALIBRATION):
             cg.add(var.calib_capacity(
                 calibration[CONF_MIN_CAPACITY],
-                calibration[CONF_MAX_CAPACITY]),
+                calibration[CONF_MAX_CAPACITY],
+                calibration[CONF_RAW]),
             )
 
     if temperature_config := config.get(CONF_TEMPERATURE):
         sens = await sensor.new_sensor(temperature_config)
         cg.add(var.set_temperature(sens))
-
-        if calibration := temperature_config.get(CONF_CALIBRATION):
-            cg.add(var.calib_temp(calibration[CONF_OFFSET]))
 
     if lum_config := config.get(CONF_ILLUMINANCE):
         sens = await sensor.new_sensor(lum_config)
@@ -126,7 +118,8 @@ async def to_code(config):
         if calibration := lum_config.get(CONF_CALIBRATION):
             cg.add(var.calib_light(
                 calibration[CONF_BRIGHTNESS_COEFFICIENT],
-                calibration[CONF_BRIGHTNESS_CONSTANT]),
+                calibration[CONF_BRIGHTNESS_CONSTANT],
+                calibration[CONF_RAW]),
             )
 
     if address := config.get(CONF_NEW_ADDRESS):

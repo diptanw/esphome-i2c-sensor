@@ -170,18 +170,22 @@ bool I2CSoilMoistureComponent::read_moisture_() {
 
   ESP_LOGD(TAG, "GET_CAPACITANCE: %d (0x%02X%02X)", raw, buffer[0], buffer[1]);
 
-  if (raw == -1) {
+  if (raw == 0xFFFF) {
     return false;
   }
 
-  // Ensure the raw value is within bounds.
-  if (raw < calibration_.c_Min)
-    raw = calibration_.c_Min;
-  else if (raw > calibration_.c_Max)
-    raw = calibration_.c_Max;
+  float moisture = raw;
 
-  // Calculate moisture percentage.
-  float moisture = ((raw - calibration_.c_Min) * 100) / (calibration_.c_Max - calibration_.c_Min);
+  if (!calibration_.c_raw) {
+    // Ensure the raw value is within bounds.
+    if (raw < calibration_.c_Min)
+      raw = calibration_.c_Min;
+    else if (raw > calibration_.c_Max)
+      raw = calibration_.c_Max;
+
+    // Calculate moisture percentage.
+    moisture = ((raw - calibration_.c_Min) * 100) / (calibration_.c_Max - calibration_.c_Min);
+  }
 
   if (moisture_ != nullptr && device_.started) {
     moisture_->publish_state(moisture);
@@ -202,7 +206,7 @@ bool I2CSoilMoistureComponent::read_temperature_() {
   ESP_LOGD(TAG, "GET_TEMPERATURE: %d (0x%02X%02X)", raw, buffer[0], buffer[1]);
 
   if (temperature_ != nullptr && device_.started) {
-    temperature_->publish_state(raw / 10.0f + calibration_.t_offset);
+    temperature_->publish_state(raw / 10.0f);
   }
 
   return true;
@@ -224,8 +228,11 @@ bool I2CSoilMoistureComponent::read_light_() {
     return false;
   }
 
-  // Apply the conversion formula to get light in lux.
-  float light = calibration_.l_coeficient * raw + calibration_.l_constant;
+  float light = raw;
+
+  if (!calibration_.l_raw) {
+    light = calibration_.l_coeficient * raw + calibration_.l_constant;
+  }
 
   if (light_ != nullptr && device_.started) {
     light_->publish_state(light);

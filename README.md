@@ -21,33 +21,59 @@ sensor:
     moisture:
       name: "Soil Moisture"
       calibration:
-        min_capacity: 290
-        max_capacity: 550
+        min_capacity: 300  # Optional (default 245)
+        max_capacity: 600  # Optional (default 550)
+        raw: false         # Use inbuilt conversion.
+      filters:
+        - skip_initial: 1  # First read is zero, skip it.
     temperature:
       name: "Soil Temperature"
-      calibration:
-        offset: -1
+      filters:
+        - skip_initial: 1  # First read is zero, skip it.
+        - offset: -0.1     # Calibrate readings.
     illuminance:
       name: "Ambient Light"
       calibration:
-        coefficient: -1.525
-        constant: 100000
+        coefficient: -1    # Optional (default -1.525)
+        constant: 100000   # Optional (default 100000)
+        raw: false         # Use inbuilt conversion.
+      filters:
+        - skip_initial: 1  # First read is zero, skip it.
     update_interval: 5s
     address: 0x20
-    new_address: 0x21
+    new_address: 0x21      # Change the address upon startup, requires a restart.
 ```
 
 ## Configuration Options
 
 - **Moisture**:
   - `calibration`:
-    - `min_capacity`: Lower calibration point for moisture (default 290).
+    - `min_capacity`: Lower calibration point for moisture (default 245).
     - `max_capacity`: Upper calibration point for moisture (default 550).
+    - `raw`: Use raw reading values without convertion.
 
     Place the sensor in dry soil to find the minimum moisture level or in water-saturated soil for the maximum level. Adjust the `min_capacity` and `max_capacity` accordingly.
 
+    A moisture sensor provides automatic conversion from raw capacity readings into moisture percentage based on default limits. To override the conversion, set set `raw` to `true` and use `filters` to adjust it with various filters such as `calibrate_linear`, etc:
+
+    ```yaml
+    moisture:
+      name: "Soil Moisture"
+      calibration:
+        raw: true
+      filters:
+        - calibrate_linear:
+            method: exact
+            datapoints:
+              - 245 -> 0.0
+              - 550 -> 100.0
+        - clamp:
+            min_value: 0
+            max_value: 100
+    ```
+
 - **Temperature**:
-  - `calibration`:
+  - `filters`:
     - `offset`: Temperature correction in Celsius if the sensor reads too high or low.
 
     If you have a known temperature source, compare and adjust the `offset` to match the known temperature.
@@ -56,8 +82,20 @@ sensor:
   - `calibration`:
     - `coefficient`: Coefficient to adjust the light reading linearly.
     - `constant`: Constant to fine-tune light readings.
+    - `raw`: Use raw reading values without convertion.
 
     Adjust the `coefficient` and `constant` based on known light conditions (e.g., direct sunlight vs. dark room).
+
+    Similar to the mixture sensor, the module provides a default conversion from sensor reading to Lux values, based on the conversion formula. If you need to override it with your own calculation, set `raw` to `true`, and use `filter` and `lambda` to adjust the formula:
+
+    ```yaml
+    illuminance:
+      name: "Ambient Light"
+      calibration:
+        raw: true
+      filters:
+        - lambda: return x * (-1.525) + 100000;
+    ```
 
 - **Address**
   - `new_address`: Optionally specify a new I2C address for the sensor if the default conflicts with another device on your I2C bus. This must be done before other devices on the bus are initialized to avoid conflicts. After addres is changed, set the new address to `address` field of i2c device.

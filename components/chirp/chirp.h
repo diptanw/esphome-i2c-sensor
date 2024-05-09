@@ -13,14 +13,15 @@ class I2CSoilMoistureComponent : public PollingComponent, public i2c::I2CDevice,
   void set_temperature(sensor::Sensor *temperature) { temperature_ = temperature; }
   void set_light(sensor::Sensor *light) { light_ = light; }
   void set_address(uint8_t addr) { device_.new_addr = addr; }
-  void calib_temp(float tOff) { calibration_.t_offset = tOff; }
-  void calib_capacity(int16_t cMin, int16_t cMax) {
+  void calib_capacity(uint16_t cMin, uint16_t cMax, bool raw = false) {
     calibration_.c_Min = cMin;
     calibration_.c_Max = cMax;
+    calibration_.c_raw = raw;
   }
-  void calib_light(float coeficient, int32_t constant) {
+  void calib_light(float coeficient, int32_t constant, bool raw = false) {
     calibration_.l_coeficient = coeficient;
     calibration_.l_constant = constant;
+    calibration_.l_raw = raw;
   }
 
   void update() override;
@@ -31,11 +32,13 @@ class I2CSoilMoistureComponent : public PollingComponent, public i2c::I2CDevice,
 
  protected:
   struct CalibrationData {
-    int16_t c_Min = 290;          // Capacity when wet.
-    int16_t c_Max = 550;          // Capacity when dry.
+    uint16_t c_Min = 245;  // Capacity when dry.
+    uint16_t c_Max = 550;  // Capacity when wet.
+    bool c_raw = false;    // Use raw capacity values.
+
     float l_coeficient = -1.525;  // Sensor specific coefficient.
     int32_t l_constant = 100000;  // Direct sunlight.
-    float t_offset = 0;           // Temperature offset.
+    bool l_raw = false;           // Use raw luminance values.
   };
 
   struct Device {
