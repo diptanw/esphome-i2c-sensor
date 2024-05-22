@@ -21,47 +21,42 @@ static uint8_t RESET = 0x06;
 static uint8_t SLEEP = 0x08;
 
 void I2CSoilMoistureComponent::update() {
-  if (device_.started == false || read_busy_()) {
-    ESP_LOGD(TAG, "Sensor is busy.");
+  if (device_.started == false) {
+    ESP_LOGD(TAG, "Not started yet.");
     return;
   }
 
-  int total_delay = 0;
-
   if (moisture_ != nullptr) {
-    set_timeout("read_moisture_", total_delay, [this]() {
-      if (!read_moisture_()) {
-        status_set_warning("Failed to read moisture.");
-      }
-    });
-
-    total_delay += device_.interval;
+    if (!read_moisture_()) {
+      status_set_warning("Failed to read moisture.");
+    }
   }
 
   if (temperature_ != nullptr) {
-    set_timeout("read_temperature_", total_delay, [this]() {
-      if (!read_temperature_()) {
-        status_set_warning("Failed to read temperature.");
-      }
-    });
+    if (!read_temperature_()) {
+      status_set_warning("Failed to read temperature.");
+    }
   }
 
   if (light_ != nullptr) {
+    if (get_update_interval() < 3000) {
+      status_set_warning("Update interval is too short for light measurements.");
+      return;
+    }
+
     if (write_register(device_.addr, &MEASURE_LIGHT, 1) != i2c::ERROR_OK) {
       status_set_warning("Failed to start light measurememnts.");
     }
 
-    total_delay += 3 * device_.interval;
-
-    set_timeout("read_light_", total_delay, [this]() {
+    set_timeout("read_light_", 3000 - 100, [this]() {
       if (!read_light_()) {
         status_set_warning("Failed to read light.");
       }
-
-      if (write_register(device_.addr, &SLEEP, 1) != i2c::ERROR_OK) {
-        status_set_warning("Failed to clear registers.");
-      }
     });
+  }
+
+  if (write_register(device_.addr, &SLEEP, 1) != i2c::ERROR_OK) {
+    status_set_warning("Failed to sleep.");
   }
 }
 
@@ -72,22 +67,6 @@ void I2CSoilMoistureComponent::setup() {
     mark_failed();
     return;
   }
-
-  uint sensor_quota = 1;
-
-  if (moisture_ != nullptr) {
-    sensor_quota++;
-  }
-
-  if (temperature_ != nullptr) {
-    sensor_quota++;
-  }
-
-  if (light_ != nullptr) {
-    sensor_quota += 3;
-  }
-
-  device_.interval = get_update_interval() / sensor_quota;
 
   if (!write_reset_()) {
     status_set_error("Failed to reset.");

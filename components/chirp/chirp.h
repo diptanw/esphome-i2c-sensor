@@ -31,7 +31,7 @@ class I2CSoilMoistureComponent : public PollingComponent, public i2c::I2CDevice,
   float get_setup_priority() const override { return setup_priority::DATA; }
 
  protected:
-  struct CalibrationData {
+  struct Calibration {
     uint16_t c_Min = 245;  // Capacity when dry.
     uint16_t c_Max = 550;  // Capacity when wet.
     bool c_raw = false;    // Use raw capacity values.
@@ -42,7 +42,6 @@ class I2CSoilMoistureComponent : public PollingComponent, public i2c::I2CDevice,
   };
 
   struct Device {
-    uint32_t interval = 0;
     bool started = false;
     uint8_t addr = 0;
     uint8_t new_addr = 0;
@@ -71,7 +70,7 @@ class I2CSoilMoistureComponent : public PollingComponent, public i2c::I2CDevice,
   sensor::Sensor *temperature_{nullptr};
   sensor::Sensor *light_{nullptr};
 
-  CalibrationData calibration_;
+  Calibration calibration_;
   Device device_;
 };
 
