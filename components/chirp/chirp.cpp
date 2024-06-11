@@ -163,7 +163,7 @@ bool I2CSoilMoistureComponent::read_moisture_() {
       raw = calibration_.c_Max;
 
     // Calculate moisture percentage.
-    moisture = ((raw - calibration_.c_Min) * 100) / (calibration_.c_Max - calibration_.c_Min);
+    moisture = ((raw - calibration_.c_Min) * 100.0) / (calibration_.c_Max - calibration_.c_Min);
   }
 
   if (moisture_ != nullptr && device_.started) {
